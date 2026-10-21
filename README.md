@@ -112,6 +112,7 @@ Linux et Windows.
 | [locust/README.md](locust/README.md) | Poids des tâches, `on_start`, fichiers CSV, comparaison avec JMeter |
 | [mock_api/README.md](mock_api/README.md) | API de démonstration, options de latence, limites |
 | [DEMO-ENTRETIEN.md](DEMO-ENTRETIEN.md) | Script de démonstration et questions/réponses pour un entretien |
+| [QUESTIONS-REPONSES.md](QUESTIONS-REPONSES.md) | 22 questions d'entretien avec réponses à dire, et les pièges |
 
 ## 💡 Conclusion pour un client
 
