@@ -1,0 +1,25 @@
+FROM eclipse-temurin:17-jre-jammy
+
+ARG JMETER_VERSION=5.6.3
+
+ENV JMETER_HOME=/opt/apache-jmeter-${JMETER_VERSION}
+ENV PATH=${JMETER_HOME}/bin:${PATH}
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -fsSL --retry 3 --retry-delay 2 \
+      -o /tmp/jmeter.tgz "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" \
+ && tar -xzf /tmp/jmeter.tgz -C /opt \
+ && rm -f /tmp/jmeter.tgz \
+ && useradd -m -u 1000 jmeter \
+ && mkdir -p /resultats \
+ && chown -R jmeter:jmeter /resultats
+
+COPY docker/entrypoint-jmeter.sh /usr/local/bin/entrypoint-jmeter.sh
+RUN chmod +x /usr/local/bin/entrypoint-jmeter.sh
+
+USER jmeter
+WORKDIR /work
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-jmeter.sh"]

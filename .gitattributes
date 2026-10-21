@@ -1,0 +1,8 @@
+# Les scripts doivent garder des fins de ligne LF, sinon un clone sous Windows
+# (core.autocrlf=true) les transforme en CRLF et le conteneur echoue au demarrage.
+*.sh text eol=lf
+*.py text eol=lf
+*.jmx text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Dockerfile* text eol=lf

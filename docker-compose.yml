@@ -1,0 +1,64 @@
+name: poc-perf
+
+services:
+  # Cible locale : les deux scenarios tournent contre elle, sans reseau externe.
+  mock:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mock
+    command:
+      - python
+      - mock_api/mock_server.py
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --latency-ms
+      - "${MOCK_LATENCY_MS:-0}"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2)"
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 2s
+
+  # Scenarios : ils demarrent, executent, ecrivent dans ./resultats puis s'arretent.
+  jmeter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.jmeter
+    depends_on:
+      mock:
+        condition: service_healthy
+    volumes:
+      - ./jmeter/plan_de_test.jmx:/jmeter/plan_de_test.jmx:ro
+      - ./resultats:/resultats
+    environment:
+      TARGET_HOST: mock
+      TARGET_PORT: "8080"
+      TARGET_PROTOCOL: http
+      THREADS: "${THREADS:-50}"
+      RAMP: "${RAMP:-10}"
+      DURATION: "${DURATION:-60}"
+
+  locust:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.locust
+    depends_on:
+      mock:
+        condition: service_healthy
+    volumes:
+      - ./locust/locustfile.py:/locust/locustfile.py:ro
+      - ./resultats:/resultats
+    environment:
+      TARGET: "${TARGET:-http://mock:8080}"
+      USERS: "${USERS:-50}"
+      SPAWN_RATE: "${SPAWN_RATE:-10}"
+      RUN_TIME: "${RUN_TIME:-1m}"

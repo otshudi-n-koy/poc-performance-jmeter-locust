@@ -58,6 +58,51 @@ Aucun fichier de scénario n'est modifié : la cible et la charge passent par `-
 (Locust). Relancer le mock avec `--latency-ms 400` puis comparer les deux rapports donne la
 démonstration la plus parlante : même charge, seul le temps de réponse change.
 
+## 🐳 Avec Docker (si les prérequis manquent)
+
+Rien à installer : Java, JMeter, Locust et la cible mock sont dans des images figées. Seul Docker
+Desktop est nécessaire.
+
+```bash
+docker compose up -d mock        # la cible, exposée sur http://localhost:8080
+docker compose run --rm locust   # 50 utilisateurs, 1 min
+docker compose run --rm jmeter   # 50 threads, 60 s
+docker compose down
+```
+
+Résultats dans `resultats/` : `rapport_html/` (rapport HTML JMeter) et les CSV Locust.
+Charge et latence se règlent par variables d'environnement, **sans éditer de fichier** :
+
+```bash
+MOCK_LATENCY_MS=400 docker compose up -d mock
+THREADS=100 DURATION=120 docker compose run --rm jmeter
+USERS=200 RUN_TIME=3m docker compose run --rm locust
+```
+
+Sous PowerShell, les variables s'écrivent `$env:THREADS=100` (une par ligne, avant la commande).
+
+| Image | Base | Taille |
+|---|---|---|
+| `poc-perf-mock` | `python:3.12-slim` | 177 Mo |
+| `poc-perf-locust` | `python:3.12-slim` + Locust | 256 Mo |
+| `poc-perf-jmeter` | `eclipse-temurin:17-jre` + JMeter 5.6.3 | 624 Mo |
+
+**Validé le 2026-10-21** en conteneurs :
+
+| Exécution | Résultat |
+|---|---|
+| JMeter, 10 threads / 15 s | 200 échantillons, **0 % d'erreur**, p95 16 ms (`/login`) et 10 ms (`/protected`) |
+| Locust, 10 utilisateurs / 20 s | 101 requêtes, **0 échec** |
+| Artefacts | `rapport_html/index.html` (9,5 Ko), 4 CSV Locust, toutes les requêtes en `200` |
+
+> À propos du plan JMeter : la version initiale renvoyait **400 sur `/login` pour 100 % des requêtes**
+> (les paramètres `user`/`pass` étaient déclarés sans `Argument.name`, donc envoyés sous forme
+> `=testuser`). Corrigé et revérifié : 0 % d'erreur. Si vous repartez du fichier d'origine, sachez que
+> ce défaut est réel — et qu'il se voit immédiatement dans le `.jtl`.
+
+Docker Desktop n'est pas nécessaire sur le poste du client : `docker compose` fonctionne sur macOS,
+Linux et Windows.
+
 ## 📚 Documentation détaillée
 
 | Document | Contenu |

@@ -1,0 +1,9 @@
+.git
+.gitignore
+resultats
+rapport_html
+*.jtl
+.venv
+**/__pycache__
+*.pyc
+.github

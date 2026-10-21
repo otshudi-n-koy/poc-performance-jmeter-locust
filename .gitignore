@@ -1,0 +1,15 @@
+# Resultats de tests (regenerables)
+resultats/
+rapport_html/
+*.jtl
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Divers
+.DS_Store
+Thumbs.db

@@ -18,7 +18,10 @@ expliquer ce qu'il mesure ». C'est vérifiable, donc crédible.
 
 ## 2. Checklist de préparation (à faire la veille, hors entretien)
 
-- [ ] `java -version` renvoie une version 11+ ; `jmeter -v` répond.
+- [ ] **Option Docker (recommandée si l'outillage manque)** : `docker compose up -d mock` puis
+      `docker compose run --rm jmeter` et `docker compose run --rm locust` — vérifié, sorties dans
+      `resultats/`. C'est la seule voie qui ne demande aucune installation Java/Python.
+- [ ] `java -version` renvoie une version 11+ ; `jmeter -v` répond **ou** l'option Docker ci-dessus.
 - [ ] `python --version` ; si Python ≥ 3.14, créer un venv 3.11/3.12 avant d'installer Locust
       (`python -m venv .venv` puis `.venv\Scripts\pip install locust`).
 - [ ] `python mock_api/mock_server.py` démarre sur le port 8080.
@@ -168,6 +171,10 @@ rollback. » L'honnêteté sur ce point rassure plus qu'une expérience invérif
    de compréhension.
 3. Basculez sur le code : `on_start`, `@task(3)`, les propriétés `-J`. Le code se lit sans exécuter.
 4. Proposez : « Je vous envoie la sortie complète après l'entretien. » Puis **faites-le**.
+5. **Filet de sécurité Docker** : si Java/JMeter/Locust manquent sur votre poste,
+   `docker compose up -d mock` puis `docker compose run --rm jmeter` reproduit la démo complète en
+   une minute, sans rien installer. Attention : le premier build télécharge ~1 Go d'images — faites-le
+   la veille, pas en salle d'entretien.
 
 ## 7. Glossaire minimum à savoir employer
 

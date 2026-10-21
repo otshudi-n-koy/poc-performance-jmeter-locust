@@ -135,6 +135,35 @@ défaut).
 paramètres de formulaire. Il faut basculer l'onglet *Body Data*. Si le login échoue en `401`/`400`,
 c'est presque toujours cette cause — ou le JSONPath resté sur `$.access_token`.
 
+## Vérifié le 2026-10-21 (conteneurs)
+
+Exécution réelle via `docker compose run --rm jmeter`, cible `mock:8080` :
+
+| Contrôle | Résultat |
+|---|---|
+| Échantillons | 200 (100 `POST /login`, 100 `GET /protected`) |
+| Codes de réponse | 200 × 200 — **0 % d'erreur** |
+| p95 | 16 ms (`/login`), 10 ms (`/protected`) |
+| Rapport `-e -o` | `index.html` régénéré (9,5 Ko) |
+
+**Défaut trouvé à cette occasion** : la version d'origine du plan envoyait `POST /login` en `400` pour
+100 % des requêtes. Les arguments HTTP étaient déclarés ainsi :
+
+```xml
+<elementProp name="user" elementType="HTTPArgument">
+  <stringProp name="Argument.value">testuser</stringProp>
+  <stringProp name="Argument.metadata">=</stringProp>
+</elementProp>
+```
+
+Sans `<stringProp name="Argument.name">user</stringProp>`, JMeter ignore le nom du paramètre et envoie
+`=testuser&=testpass` : le serveur répond `400`, puis la corrélation n'a pas de jeton et `/protected`
+répond `401`. L'attribut `name` du `elementProp` ne joue pas ce rôle — il ne sert qu'à l'interface.
+
+La correction ajoute `Argument.name` **et** `HTTPArgument.use_equals` sur les deux paramètres. C'est
+exactement le genre de détail qui se défend en entretien : « je ne me suis pas contenté d'écrire le
+plan, je l'ai exécuté et lu les `.jtl` ».
+
 ## Points à savoir défendre en entretien
 
 - **Pourquoi un ramp-up** : 50 utilisateurs lancés instantanément produisent un pic artificiel ;
