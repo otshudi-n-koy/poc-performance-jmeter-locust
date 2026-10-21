@@ -1,0 +1,54 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  load_test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Locust
+      run: pip install locust
+
+    - name: Run Locust Headless
+      run: |
+        locust -f locust/locustfile.py --headless -u 10 -r 2 --run-time 1m --host=https://api.example.com --csv=resultats_locust || true
+
+    - name: Upload Locust Results
+      uses: actions/upload-artifact@v4
+      with:
+        name: locust-results
+        path: resultats_locust*.csv
+
+    # Exemple pour JMeter (nécessite une étape d'installation de Java)
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Install JMeter
+      run: |
+        wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+        tar -xzf apache-jmeter-5.6.3.tgz
+
+    - name: Run JMeter Headless
+      run: |
+        ./apache-jmeter-5.6.3/bin/jmeter -n -t jmeter/plan_de_test.jmx -l resultats.jtl -e -o rapport_html || true
+
+    - name: Upload JMeter Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: jmeter-report
+        path: rapport_html/
