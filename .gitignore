@@ -2,14 +2,22 @@
 resultats/
 rapport_html/
 *.jtl
-*.csv
+
+# Volontairement PAS de "*.csv" ni de "*.html" globaux :
+# un fichier de donnees metier comme jmeter/users.csv (CSV Data Set Config)
+# ou une page HTML source serait ignore a tort.
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
 venv/
 
-# Divers
+# Logs
+*.log
+
+# OS / IDE
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
