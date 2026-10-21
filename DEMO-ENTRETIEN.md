@@ -100,6 +100,14 @@ Trois signaux :
 > plus le serveur. La solution est alors de distribuer la charge (JMeter contrôleur/worker, Locust
 > `--master`/`--worker`). »
 
+**L'anecdote à raconter** (elle est vraie, elle est dans le dépôt) : sur mon premier run Locust,
+`POST /login` affichait un p90 à 1 000 ms pour une médiane à 39 ms. Des latences rondes, uniquement
+sur la première requête de chaque utilisateur. Ce n'était pas l'application : c'était la file
+d'attente d'acceptation de la cible mock (`request_queue_size = 5` par défaut en Python), qui
+débordait quand 50 utilisateurs se connectaient dans la même seconde — `SYN` perdu, renvoi après 1 s.
+Après correction, p90 à 80 ms. La règle à énoncer : **une latence anormalement ronde est un artefact
+de mesure, pas un comportement applicatif**.
+
 ### 6. JMeter, Locust, NeoLoad : comment choisir ?
 
 | Critère | JMeter | Locust | NeoLoad |

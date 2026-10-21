@@ -132,6 +132,21 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json(200, {"access_token": token, "token_type": "Bearer", "expires_in": 3600})
 
 
+class Server(ThreadingHTTPServer):
+    """ThreadingHTTPServer avec une file d'attente d'acceptation dimensionnee.
+
+    Par defaut, socketserver.TCPServer utilise request_queue_size = 5 : des que
+    plusieurs dizaines de clients se connectent dans la meme seconde (montée en
+    charge d'un test de perf), le noyau rejette les SYN en trop. Le client les
+    renvoie apres un delai de 1 s — d'ou des latences de 1000, 1100, 1200 ms
+    parfaitement quantifiees — ou recoit un RST (ConnectionResetError).
+    """
+
+    daemon_threads = True
+    allow_reuse_address = True
+    request_queue_size = 128
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="API mock pour tests de charge (stdlib)")
     parser.add_argument("--host", default="127.0.0.1", help="adresse d'ecoute (defaut 127.0.0.1)")
@@ -146,8 +161,7 @@ def main() -> int:
     Handler.latency_ms = args.latency_ms
     Handler.jitter_ms = args.jitter_ms
 
-    server = ThreadingHTTPServer((args.host, args.port), Handler)
-    server.daemon_threads = True
+    server = Server((args.host, args.port), Handler)
     server.verbose = args.verbose
 
     base = f"http://{args.host}:{args.port}"

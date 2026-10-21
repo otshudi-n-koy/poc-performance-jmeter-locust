@@ -93,6 +93,7 @@ Sous PowerShell, les variables s'écrivent `$env:THREADS=100` (une par ligne, av
 |---|---|
 | JMeter, 10 threads / 15 s | 200 échantillons, **0 % d'erreur**, p95 16 ms (`/login`) et 10 ms (`/protected`) |
 | Locust, 10 utilisateurs / 20 s | 101 requêtes, **0 échec** |
+| Locust, 50 utilisateurs / 60 s (après correction de la cible) | 1 476 requêtes, **0 échec**, p95 global 50 ms |
 | Artefacts | `rapport_html/index.html` (9,5 Ko), 4 CSV Locust, toutes les requêtes en `200` |
 
 > À propos du plan JMeter : la version initiale renvoyait **400 sur `/login` pour 100 % des requêtes**

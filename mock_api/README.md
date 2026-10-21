@@ -77,6 +77,37 @@ Aucune édition de fichier : la cible et la charge sont des **propriétés** pas
 | Charge : 300 requêtes, 25 en parallèle | 300 succès, 0 erreur, ~279 req/s |
 | Python utilisé | 3.15.0, aucune dépendance |
 
+## Latences quantifiées à 1 s : un piège d'outillage
+
+Premier run Locust en conteneur, 50 utilisateurs : `POST /login` affichait une médiane à 39 ms…
+et un **p90 à 1 000 ms, un max à 1 200 ms**. Quatre valeurs rondes, uniquement sur le login, qui
+n'apparaissaient qu'au moment du démarrage des utilisateurs.
+
+Cause : `socketserver.TCPServer` utilise par défaut `request_queue_size = 5`. Dès que 50 clients se
+connectent dans la même seconde, la file d'acceptation déborde ; le noyau jette les `SYN` en trop, et
+le client les renvoie **après un délai de 1 s** (ou reçoit un `RST`). Reproduction dans le conteneur,
+50 connexions simultanées :
+
+| Version | Résultat |
+|---|---|
+| `request_queue_size = 5` (défaut) | `ConnectionResetError: [Errno 104] Connection reset by peer` |
+| `request_queue_size = 128` | p90 27 ms, max 36 ms, 0 reset — sur 50 **et** 100 connexions simultanées |
+
+Après correction, le même scénario Locust (50 utilisateurs, 60 s) donne `POST /login` à
+**p90 80 ms, p95 83 ms, max 89 ms** — au lieu de 1 000–1 200 ms.
+
+**La leçon, et c'est le meilleur argument d'entretien de ce dépôt** : une latence bizarrement ronde
+(1 000, 2 000, 3 000 ms) n'est presque jamais applicative. C'est un **artefact de mesure** —
+retransmission TCP, `SYN` perdu, file d'attente pleine. Avant d'accuser l'application, il faut
+s'assurer que le générateur et la cible ne saturent pas leurs propres files d'attente.
+
+```bash
+# vérifier où se situe le goulot
+docker compose exec -T mock python /tmp/burst_login.py   # côté cible
+docker stats                                            # CPU des conteneurs pendant le test
+```
+
+
 ## Limites — à connaître avant d'en parler
 
 - **Ce n'est pas un serveur de production** : jeton en mémoire, pas de persistance, un seul processus.
