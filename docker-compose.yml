@@ -14,7 +14,7 @@ services:
       - --port
       - "8080"
       - --latency-ms
-      - "${MOCK_LATENCY_MS:-0}"
+      - "${MOCK_LATENCY_MS:-60}"
     ports:
       - "8080:8080"
     healthcheck:

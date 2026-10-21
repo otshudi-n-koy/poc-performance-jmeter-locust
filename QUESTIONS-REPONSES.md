@@ -67,7 +67,7 @@ une moyenne flatteuse d'environ 330 ms — alors que 5 % des utilisateurs ont at
 > « Je pilote sur le p95 : 95 % des utilisateurs sont sous ce seuil. La moyenne sert à expliquer, le
 > p95 à décider. Et le p99 pour voir la queue de distribution. »
 
-*Ce qu'il teste* : avez-vous déjà regardé un vrai rapport. *(Vous en avez un : p95 11 ms, p99 24 ms.)*
+*Ce qu'il teste* : avez-vous déjà regardé un vrai rapport. *(Vous en avez un : p95 93 ms, p99 139 ms, 92 trans/s.)*
 
 ### 6. Lien entre débit, latence et nombre d'utilisateurs ?
 
@@ -292,16 +292,16 @@ Réponse honnête : **non**, pas de test de charge en production.
 
 1. **Inventer un chiffre de production.** Impossible à assumer en suivi de question.
 2. **Dire « je maîtrise JMeter ».** Dites ce que vous avez fait, avec vos chiffres.
-3. **Conclure sans objectif.** « 104 transactions/s » sans référence ne veut rien dire.
+3. **Conclure sans objectif.** « 92 transactions/s » sans référence ne veut rien dire.
 4. **Répondre plus de 60 secondes.** Coupez vous-même : « je peux détailler si vous voulez ».
 5. **Ne pas connaître sa propre démo.** Toutes les réponses ci-dessus doivent tenir sans le dépôt
-   ouvert — vous avez les chiffres en tête : 1 000 échantillons, p95 11 ms, 0 % d'erreur, et p90 du
+   ouvert — vous avez les chiffres en tête : 1 000 échantillons, p95 93 ms, 0 % d'erreur, et p90 du
    login ramené de 1 000 à 80 ms.
 
 ## Vos trois chiffres à retenir par cœur
 
 | Chiffre | Contexte |
 |---|---|
-| **1 000 échantillons, 0 % d'erreur, p95 11 ms, 104 trans/s** | run JMeter, 50 threads |
-| **1 476 requêtes, 0 échec, p95 global 50 ms** | run Locust, 50 utilisateurs, 60 s |
+| **1 000 échantillons, 0 % d'erreur, p95 93 ms, 92 trans/s** | run JMeter, 50 threads, cible à 60 ms |
+| **1 429 requêtes, 0 échec, p95 78 ms, 24,7 req/s** | run Locust, 50 utilisateurs, 60 s |
 | **p90 login : 1 000 ms → 80 ms** | après correction du backlog d'écoute de la cible |

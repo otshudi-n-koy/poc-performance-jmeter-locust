@@ -137,14 +137,16 @@ c'est presque toujours cette cause — ou le JSONPath resté sur `$.access_token
 
 ## Vérifié le 2026-10-21 (conteneurs)
 
-Exécution réelle via `docker compose run --rm jmeter`, cible `mock:8080` :
+Campagne de référence : `docker compose run --rm jmeter`, cible `mock:8080` avec 60 ms de latence
+simulée, 50 threads, rampe 10 s.
 
 | Contrôle | Résultat |
 |---|---|
-| Échantillons | 200 (100 `POST /login`, 100 `GET /protected`) |
+| Échantillons | 1 000 (500 `POST /login`, 500 `GET /protected`) |
 | Codes de réponse | 200 × 200 — **0 % d'erreur** |
-| p95 | 16 ms (`/login`), 10 ms (`/protected`) |
-| Rapport `-e -o` | `index.html` régénéré (9,5 Ko) |
+| Débit | 92 transactions/s |
+| Latence | moyenne 45 ms, **p95 93 ms**, p99 139 ms |
+| Rapport `-e -o` | `index.html` régénéré (9,5 Ko, 127 fichiers) |
 
 **Défaut trouvé à cette occasion** : la version d'origine du plan envoyait `POST /login` en `400` pour
 100 % des requêtes. Les arguments HTTP étaient déclarés ainsi :
