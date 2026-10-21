@@ -9,18 +9,19 @@ récupère un jeton et appelle une route protégée.
 |---|---|
 | `plan_de_test.jmx` | Plan de test XML (Test Plan JMeter 5.6.3) |
 
-## ⚠️ Cible du fichier : `api.example.com`
+## Cible : paramétrable, `api.example.com` par défaut
 
-`plan_de_test.jmx` pointe volontairement sur `https://api.example.com`, une **URL de
-démonstration qui n'existe pas**. C'est le contrat d'interface du POC : les endpoints attendus sont
+Le plan pointe par défaut sur `https://api.example.com`, une URL de démonstration **qui n'existe
+pas**. La cible n'est pas figée dans le fichier : elle est lue dans des **propriétés JMeter**
+(`${__P(nom, défaut)}`), donc surchargeable en ligne de commande avec `-J`.
+
+Endpoints attendus par le plan :
 
 | Endpoint | Méthode | Attendu |
 |---|---|---|
 | `/login` | POST | `200` + corps JSON `{"access_token": "..."}` |
 | `/protected` | GET + `Authorization: Bearer <token>` | `200` |
 | `/health` | GET | `200` |
-
-Pour exécuter le plan, il faut donc le repointer vers une API réelle (voir plus bas).
 
 ## Structure du plan
 
@@ -39,12 +40,34 @@ Pour exécuter le plan, il faut donc le repointer vers une API réelle (voir plu
 stocké dans une variable JMeter, puis réinjecté dans l'en-tête de la requête suivante. C'est ce
 mécanisme qui distingue un test de charge d'une simple rafale de requêtes.
 
+## Paramétrage de la charge (propriétés `-J`)
+
+| Propriété | Défaut | Ligne du plan |
+|---|---|---|
+| `host` | `api.example.com` | `HTTPSampler.domain` |
+| `port` | `443` | `HTTPSampler.port` |
+| `protocol` | `https` | `HTTPSampler.protocol` |
+| `threads` | `50` | `ThreadGroup.num_threads` |
+| `ramp` | `10` | `ThreadGroup.ramp_time` |
+| `duration` | `60` | `ThreadGroup.duration` |
+
+```bash
+jmeter -n -t jmeter/plan_de_test.jmx -Jhost=dummyjson.com -Jthreads=100 -Jduration=120
+```
+
+C'est le point à montrer en entretien : **on ne modifie pas le scénario pour changer de cible ou de
+charge**, on passe des paramètres. Le même `.jmx` sert en local, en intégration et en préproduction.
+
 ## Lancement en mode graphique (pour découvrir l'outil)
 
 ```bash
 jmeter                       # ouvre l'interface
 ```
-Puis `File > Open` → `jmeter/plan_de_test.jmx`.
+Puis `File > Open` → `jmeter/plan_de_test.jmx`. Pour ouvrir directement avec des propriétés :
+
+```bash
+jmeter -Jhost=127.0.0.1 -Jport=8080 -Jprotocol=http -t jmeter/plan_de_test.jmx
+```
 
 Le mode GUI sert à **construire et déboguer**. Il ne faut jamais l'utiliser pour mesurer : l'IHM
 consomme de la ressource et fausse les résultats. C'est un point à savoir expliquer en entretien.
@@ -61,38 +84,55 @@ jmeter -n -t jmeter/plan_de_test.jmx -l resultats.jtl -e -o rapport_html
 |---|---|
 | `-n` | Mode non graphique |
 | `-t` | Fichier de plan de test |
+| `-Jcle=valeur` | Surcharge une propriété du plan |
 | `-l` | Fichier de résultats bruts (`.jtl`) |
 | `-e -o` | Génère le rapport HTML dans le dossier cible (doit être vide ou absent) |
 
 Résultat : `rapport_html/index.html` — statistiques agrégées, percentiles, débit, courbes.
 
-## Repointer le plan vers une API publique réelle
+## Démo locale hors ligne (recommandée)
 
-`https://dummyjson.com` expose une API de démonstration **vérifiée le 2026-10-21** :
+L'API mock du dépôt implémente exactement `/login`, `/protected` et `/health`, y compris le format
+formulaire attendu par le sampler : **le plan fonctionne sans aucune modification**.
 
-| Vérification | Résultat observé |
-|---|---|
-| `POST /auth/login` | `200` → clé **`accessToken`** (et non `access_token`) |
-| `GET /auth/me` sans en-tête | `401` |
-| `GET /auth/me` avec `Bearer <accessToken>` | `200` |
-| `GET /test` | `200` → `{"status":"ok"}` |
+```bash
+# terminal 1
+python mock_api/mock_server.py --port 8080 --latency-ms 60
 
-Correspondance à appliquer dans le GUI (les noms d'endpoints diffèrent du POC) :
+# terminal 2
+jmeter -n -t jmeter/plan_de_test.jmx ^
+       -Jhost=127.0.0.1 -Jport=8080 -Jprotocol=http ^
+       -Jthreads=50 -Jramp=10 -Jduration=60 ^
+       -l resultats.jtl -e -o rapport_html
+```
+
+Pour rendre la démo parlante : relancer le mock avec `--latency-ms 500`, rejouer le même plan, puis
+comparer `Average` et `95%` dans les deux rapports. Même scénario, même charge, seule la cible change
+— c'est exactement le raisonnement d'un test de performance.
+
+## Alternative : API publique réelle
+
+`https://dummyjson.com` (**vérifié le 2026-10-21**) : `POST /auth/login` → `200` avec la clé
+**`accessToken`** (et non `access_token`), `GET /auth/me` avec `Bearer` → `200`, sans en-tête → `401`,
+`GET /test` → `200`.
+
+Cette API n'utilise pas les mêmes chemins que le POC : il faut donc **éditer le plan** (contrairement
+à la démo mock).
 
 | Champ JMeter | Valeur POC | Valeur démo `dummyjson` |
 |---|---|---|
-| Protocol | `https` | `https` |
-| Server Name | `api.example.com` | `dummyjson.com` |
-| Port | `443` | `443` |
 | Path du sampler login | `/login` | `/auth/login` |
 | Paramètres du login | `user` / `pass` | `username` = `emilys`, `password` = `emilyspass` |
 | JSONPath (extracteur) | `$.access_token` | `$.accessToken` |
 | Path du sampler protégé | `/protected` | `/auth/me` |
 | Health check | `/health` | `/test` |
 
+La cible reste sinon la même commande : `-Jhost=dummyjson.com` (port `443`, protocol `https` par
+défaut).
+
 **Le piège** : `dummyjson` attend du **JSON** (`Content-Type: application/json` + corps
-`{"username": "...", "password": "..."}`), alors que le plan du POC envoie des paramètres de
-formulaire. Il faut basculer l'onglet *Body Data* du sampler. Si le login échoue en `401`/`400`,
+`{"username": "emilys", "password": "emilyspass"}`), alors que le sampler du POC envoie des
+paramètres de formulaire. Il faut basculer l'onglet *Body Data*. Si le login échoue en `401`/`400`,
 c'est presque toujours cette cause — ou le JSONPath resté sur `$.access_token`.
 
 ## Points à savoir défendre en entretien
@@ -106,6 +146,8 @@ c'est presque toujours cette cause — ou le JSONPath resté sur `$.access_token
   rien d'utile.
 - **Assertion vs code retour** : JMeter compte une requête en succès sur le code HTTP ; l'assertion
   explicite est ce qui transforme un `200` inattendu en échec visible.
+- **Paramétrage `-J`** : séparer le scénario de l'environnement est la marque d'un plan réutilisable
+  — et ce que l'on attend d'un test exécuté par une CI.
 - **`-e -o`** : le rapport HTML est le livrable client (débit, p95, taux d'erreur), le `.jtl` est la
   donnée brute réutilisable.
 - **Ce que JMeter ne fait pas tout seul** : générer une charge distribuée (contrôleur/worker), ou
@@ -113,10 +155,12 @@ c'est presque toujours cette cause — ou le JSONPath resté sur `$.access_token
 
 ## Limites connues du fichier
 
-- La cible `api.example.com` n'existe pas : le plan est un **modèle**, pas un test exécutable en
-  l'état.
+- La cible par défaut `api.example.com` n'existe pas : sans `-Jhost` (ou sans le mock), le plan est
+  un **modèle**, pas un test exécutable.
 - `guiclass="JSONPathAssertionGui"` sur le `JSONPostProcessor` : l'attribut `testclass` est correct,
   mais si l'interface refuse d'ouvrir l'élément, remplacer par `JSONPostProcessorGui`.
 - Pas de `CSV Data Set Config` : les identifiants sont identiques pour tous les utilisateurs
   virtuels. Sur un vrai test, on génère un utilisateur par thread depuis un fichier CSV.
 - Pas de répartition de charge multi-scénarios (login massif vs navigation), pas de think time.
+- `-J` ne fonctionne que sur les propriétés **du plan** : les propriétés système JMeter (mémoire,
+  threads) se règlent dans `jmeter.bat` / `user.properties`.

@@ -54,6 +54,23 @@ Un rapport HTML autonome s'obtient en ajoutant `--html=rapport.html`.
 Colonnes clés de `resultats_stats.csv` : `Request Count`, `Failure Count`, `Average Response Time`,
 `Requests/s`, puis les percentiles `50%`, `66%`, `90%`, `95%`, `99%`, `99.9%`.
 
+## Démo locale hors ligne (recommandée)
+
+Le dépôt fournit une API mock (`mock_api/mock_server.py`) qui implémente exactement `/login`,
+`/protected` et `/health` : **le locustfile fonctionne sans aucune modification**.
+
+```bash
+# terminal 1
+python mock_api/mock_server.py --port 8080 --latency-ms 60
+
+# terminal 2
+locust -f locust/locustfile.py --headless -u 50 -r 10 --run-time 1m --host http://127.0.0.1:8080 --csv=resultats
+```
+
+Pour montrer l'effet d'un backend lent en direct : relancer le mock avec `--latency-ms 400`, rejouer
+le même test, et comparer `Average Response Time` / `95%` dans les deux CSV. C'est la démonstration
+la plus parlante — même charge, même scénario, seule la cible change.
+
 ## Adapter le scénario à une API publique réelle
 
 `https://dummyjson.com` (**vérifié le 2026-10-21**) : `POST /auth/login` → `200` avec la clé
@@ -113,8 +130,6 @@ Lancement : `locust -f locust/locustfile.py --host https://dummyjson.com`.
 ## Limites connues du fichier
 
 - **Aucun `host` défini** → `--host` obligatoire, sinon Locust refuse de démarrer.
-- Les endpoints `/login`, `/protected`, `/health` ne correspondent à aucune API publique : le fichier
-  est un modèle, pas un test exécutable tel quel.
 - En cas d'échec du login, `self.token` reste indéfini dans la version du POC : l'en-tête devient
   alors `Bearer None` et la tâche suivante échoue en `401` — avec la variante ci-dessus (`.get()`
   + `auth_headers`), l'erreur est au moins explicite.
