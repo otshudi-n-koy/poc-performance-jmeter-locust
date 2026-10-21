@@ -186,13 +186,18 @@ Reproductible avec la commande de la section [Sans Docker](#sans-docker).
 | Outil | Simulation sur la cible | Résultat |
 |---|---|---|
 | JMeter 5.6.3 | 50 threads, rampe 10 s | 1 000 échantillons, **0 % d'erreur**, 92 trans/s, moyenne 45 ms, **p95 93 ms**, p99 139 ms |
-| Locust 2.46.7 | 50 utilisateurs, rampe 10/s | 1 429 requêtes, **0 échec**, 24,7 req/s, moyenne 52 ms, **p95 78 ms**, p99 110 ms |
+| Locust 2.46.7 | 50 utilisateurs, rampe 10/s | ~1 400 requêtes, **0 échec**, ~25 req/s, moyenne 52-57 ms, **p95 78-110 ms**, p99 110-230 ms |
 
-**Pourquoi les débits diffèrent (92 contre 24,7 req/s)** : le scénario Locust applique un
+**Pourquoi les débits diffèrent (92 contre 25 req/s)** : le scénario Locust applique un
 `wait_time = between(1, 3)` — un temps de réflexion humain — alors que le plan JMeter n'en a aucun et
 enchaîne les requêtes au maximum. Les deux outils ne génèrent donc pas la même pression : ce sont les
-**latences** qui sont comparables (~45 contre ~52 ms), pas les débits. Savoir l'expliquer vaut mieux
+**latences** qui sont comparables (~45 contre ~55 ms), pas les débits. Savoir l'expliquer vaut mieux
 que masquer l'écart en alignant artificiellement les chiffres.
+
+**Les valeurs exactes varient d'une exécution à l'autre** : sur ce poste, le p95 Locust a été observé
+entre 78 et 110 ms selon la charge de la machine. C'est l'ordre de grandeur et l'écart entre les deux
+outils qui comptent, pas le chiffre au millième — c'est aussi pourquoi le garde-fou de la CI utilise un
+seuil large (500 ms) plutôt qu'une valeur exacte.
 
 Deux corrections ont marqué ce POC, toutes deux visibles dans les journaux :
 
