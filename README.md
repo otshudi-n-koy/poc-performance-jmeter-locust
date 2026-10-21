@@ -38,3 +38,8 @@ Les résultats CSV sont générés à la racine.
 | Intégration CI/CD | Bonne (mode headless) | Excellente (natif) |
 | Rapports | HTML complet intégré | Interface web temps réel + CSV |
 
+## 💡 Conclusion pour un client
+
+Pour un client avec des équipes QA classiques ou des besoins de protocoles variés (JDBC, SOAP), **JMeter** est recommandé.
+
+Pour un client avec des stacks Python/DevOps souhaitant des tests versionnés dans Git et intégrés nativement à la CI/CD, **Locust** est idéal.
