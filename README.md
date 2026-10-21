@@ -168,12 +168,23 @@ python ci/check_thresholds.py --locust-csv resultats/resultats_stats.csv --max-p
 ### Publier une release avec les rapports
 
 Les artefacts GitHub Actions exigent un compte connecté pour être téléchargés. Un tag `v*` déclenche
-donc en plus la création d'une release, dont les pièces jointes sont **publiques** :
+donc en plus la création d'une release, dont les pièces jointes sont **publiques**.
+
+Le dépôt suit une convention simple : `main` reste la branche de développement, et une version
+publiable est figée sur une branche `release/x.y.z`, puis taguée.
 
 ```bash
-git tag v1.0.0-poc
+# 1. figer la version
+git checkout -b release/v1.0.0
+git push -u origin release/v1.0.0
+
+# 2. taguer le commit de la release : le pipeline rejoue les tests et crée la release
+git tag -a v1.0.0-poc -m "POC JMeter vs Locust — version de démonstration"
 git push origin v1.0.0-poc
 ```
+
+Le tag doit être poussé après la branche : la release référence un commit qui doit exister sur le
+dépôt distant.
 
 Le workflow joint `rapport-jmeter.zip` (rapport HTML complet) et `rapport-locust.html` (fichier
 autonome), générés par cette exécution et dont les seuils ont été vérifiés.
