@@ -3,8 +3,26 @@ name: Performance Tests
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MOCK_PORT: 8080
+  MOCK_LATENCY_MS: 50
+  MAX_P95_MS: 500
+  USERS: 50
+  RUN_TIME: 1m
+  THREADS: 50
+  DURATION: 60
 
 jobs:
   load_test:
@@ -16,39 +34,102 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.12'
 
     - name: Install Locust
-      run: pip install locust
+      run: pip install "locust>=2.20,<3"
+
+    # La cible : le mock du depot. Sans elle, les tests viseraient une API inexistante
+    # et echoueraient silencieusement (c'etait le cas avant).
+    - name: Start mock API
+      run: |
+        python mock_api/mock_server.py --port "$MOCK_PORT" --latency-ms "$MOCK_LATENCY_MS" &
+        for i in $(seq 1 30); do
+          if curl -fsS "http://127.0.0.1:$MOCK_PORT/health" > /dev/null; then
+            echo "mock API prete sur le port $MOCK_PORT"
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "mock API indisponible apres 30 s"
+        exit 1
 
     - name: Run Locust Headless
       run: |
-        locust -f locust/locustfile.py --headless -u 10 -r 2 --run-time 1m --host=https://api.example.com --csv=resultats_locust || true
+        locust -f locust/locustfile.py \
+          --headless -u "$USERS" -r 10 --run-time "$RUN_TIME" \
+          --host "http://127.0.0.1:$MOCK_PORT" \
+          --csv=resultats_locust --html=rapport-locust.html
 
-    - name: Upload Locust Results
-      uses: actions/upload-artifact@v4
-      with:
-        name: locust-results
-        path: resultats_locust*.csv
+    - name: Seuils Locust
+      run: python ci/check_thresholds.py --locust-csv resultats_locust_stats.csv --max-p95-ms "$MAX_P95_MS"
 
-    # Exemple pour JMeter (nécessite une étape d'installation de Java)
     - name: Set up Java
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '11'
+        java-version: '17'
 
     - name: Install JMeter
       run: |
-        wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
-        tar -xzf apache-jmeter-5.6.3.tgz
+        curl -fsSL --retry 3 --retry-delay 2 \
+          -o /tmp/jmeter.tgz "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz"
+        tar -xzf /tmp/jmeter.tgz -C "$HOME"
+        echo "$HOME/apache-jmeter-5.6.3/bin" >> "$GITHUB_PATH"
 
     - name: Run JMeter Headless
       run: |
-        ./apache-jmeter-5.6.3/bin/jmeter -n -t jmeter/plan_de_test.jmx -l resultats.jtl -e -o rapport_html || true
+        jmeter -n -t jmeter/plan_de_test.jmx \
+          -Jhost=127.0.0.1 -Jport="$MOCK_PORT" -Jprotocol=http \
+          -Jthreads="$THREADS" -Jramp=10 -Jduration="$DURATION" \
+          -l resultats.jtl -e -o rapport_html
 
-    - name: Upload JMeter Report
+    - name: Seuils JMeter
+      run: python ci/check_thresholds.py --jtl resultats.jtl --max-p95-ms "$MAX_P95_MS"
+
+    # always() : si un seuil casse, on veut quand meme les rapports pour comprendre.
+    - name: Publier les rapports
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: jmeter-report
-        path: rapport_html/
+        name: rapports-performance
+        path: |
+          rapport-locust.html
+          resultats_locust_stats.csv
+          resultats_locust_failures.csv
+          resultats.jtl
+          rapport_html/
+        if-no-files-found: warn
+        retention-days: 30
+
+    # Release automatique : uniquement sur un tag v* (ex. v1.0.0).
+    - name: Zipper le rapport JMeter
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        zip -r rapport-jmeter.zip rapport_html
+        ls -lh rapport-jmeter.zip rapport-locust.html
+
+    - name: Publier la release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          rapport-jmeter.zip
+          rapport-locust.html
+        generate_release_notes: true
+        body: |
+          ## Rapports de l'exécution
+
+          Deux scenarios executés contre la cible mock du depot (`mock_api/mock_server.py`),
+          sans dependance a une API tierce :
+
+          | Fichier joint | Contenu |
+          |---|---|
+          | `rapport-jmeter.zip` | Rapport HTML JMeter (plan `jmeter/plan_de_test.jmx`) |
+          | `rapport-locust.html` | Rapport HTML Locust (scenario `locust/locustfile.py`) |
+
+          Parametres : ${{ env.USERS }} utilisateurs, p95 contrôlé sous ${{ env.MAX_P95_MS }} ms,
+          latence simulée de ${{ env.MOCK_LATENCY_MS }} ms sur la route protégée.
+
+          Les seuils sont bloquants : le job échoue si le p95 dépasse 500 ms ou si une
+          requête échoue. Un rapport joint correspond donc à une exécution conforme.

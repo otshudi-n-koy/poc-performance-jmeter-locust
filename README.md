@@ -117,6 +117,36 @@ execute exactement la commande donnée, sans passer par les valeurs par défaut.
 Docker Desktop n'est pas nécessaire sur le poste du client : `docker compose` fonctionne sur macOS,
 Linux et Windows.
 
+## ⚙️ Intégration continue
+
+Le workflow [`.github/workflows/performance.yml`](.github/workflows/performance.yml) exécute les deux
+scénarios contre la cible mock, à chaque push sur `main`, à chaque pull request, et sur demande :
+
+1. démarrage de `mock_api/mock_server.py` sur le port 8080 (latence simulée de 50 ms) ;
+2. Locust puis JMeter en headless, ciblés sur `http://127.0.0.1:8080` — aucun appel à une API tierce ;
+3. **seuils bloquants** avec `ci/check_thresholds.py` : p95 < 500 ms et zéro erreur, sinon le job
+   échoue (un test de charge qui ne peut pas échouer ne sert à rien) ;
+4. publication des rapports en artefacts, **même si un seuil casse**, pour pouvoir diagnostiquer.
+
+```bash
+# les mêmes contrôles, en local
+python ci/check_thresholds.py --jtl resultats/resultats.jtl --max-p95-ms 500
+python ci/check_thresholds.py --locust-csv resultats/resultats_stats.csv --max-p95-ms 500
+```
+
+### Publier une release avec les rapports
+
+Les artefacts GitHub Actions exigent un compte connecté pour être téléchargés. Un tag `v*` déclenche
+donc en plus la création d'une release, dont les pièces jointes sont **publiques** :
+
+```bash
+git tag v1.0.0-poc
+git push origin v1.0.0-poc
+```
+
+Le workflow joint `rapport-jmeter.zip` (rapport HTML complet) et `rapport-locust.html` (fichier
+autonome), générés par cette exécution et dont les seuils ont été vérifiés.
+
 ## 📚 Documentation détaillée
 
 | Document | Contenu |

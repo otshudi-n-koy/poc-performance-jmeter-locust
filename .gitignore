@@ -3,6 +3,11 @@ resultats/
 rapport_html/
 *.jtl
 
+# Sorties produites a la racine par le workflow CI (reproductibles en local)
+resultats_locust*.csv
+rapport-locust.html
+rapport-jmeter.zip
+
 # Volontairement PAS de "*.csv" ni de "*.html" globaux :
 # un fichier de donnees metier comme jmeter/users.csv (CSV Data Set Config)
 # ou une page HTML source serait ignore a tort.

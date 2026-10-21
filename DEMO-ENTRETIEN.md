@@ -43,7 +43,7 @@ Ordre choisi : le **concept** d'abord, l'**outil** ensuite, la **preuve** à la 
 | 5–7 | `locust/locustfile.py` | « Le même scénario en 30 lignes : `on_start` = la corrélation, `@task(3)` = le profil d'usage 75/25. » |
 | 7–9 | `mock_api/mock_server.py` + `--latency-ms 400` | « J'ai écrit une cible mock : la démo ne dépend ni du wifi ni d'un service tiers. » |
 | 9–11 | Deux CSV côte à côte (60 ms vs 400 ms) | « Même charge, même scénario : seul le p95 bouge. C'est ça, mesurer un impact. » |
-| 11–12 | `.github/workflows/performance.yml` | « Les deux tests tournent en headless sur chaque push, avec publication des rapports en artefacts. » |
+| 11–12 | `.github/workflows/performance.yml` | « Cible mock démarrée dans la CI, deux tests en headless, seuils bloquants sur le p95, rapports publiés — et une release créée automatiquement sur un tag. » |
 
 Le point le plus fort est la **minute 9–11** : un avant/après chiffré fait plus d'effet que dix
 fichiers. Préparez-le, c'est le seul moment où l'on vous croit sur parole.
@@ -147,8 +147,10 @@ plusieurs machines : JMeter en mode contrôleur/worker (`-R`, `jmeter-server`) o
 - **seuils bloquants** explicites plutôt qu'un `|| true` ;
 - artefacts (rapports HTML/CSV) publiés pour comparer d'une exécution à l'autre.
 
-> « Mon workflow actuel lance les deux outils et publie les rapports ; l'étape suivante, que je sais
-> identifier, est de remplacer le `|| true` par un seuil sur le p95 et le taux d'erreur. »
+> « Mon workflow démarre la cible mock, exécute les deux scénarios, et **échoue** si le p95 dépasse
+> 500 ms ou si une seule requête échoue — c'est `ci/check_thresholds.py`. Les rapports sont publiés en
+> artefacts à chaque exécution, même en cas d'échec, et un tag `v*` crée une release avec les rapports
+> en pièce jointe. »
 
 ### 10. Que livrez-vous au client à la fin d'un test ?
 
