@@ -81,6 +81,19 @@ USERS=200 RUN_TIME=3m docker compose run --rm locust
 
 Sous PowerShell, les variables s'écrivent `$env:THREADS=100` (une par ligne, avant la commande).
 
+> **Piège Windows : un fichier ouvert est verrouillé.** Si `resultats/resultats_stats.csv` est ouvert
+> dans Excel ou VS Code pendant un test, le conteneur échoue avec
+> `PermissionError: '/resultats/resultats_stats.csv'` — Docker traduit le verrou Windows en erreur de
+> permission, ce qui ressemble à un problème de droits alors que c'est un fichier ouvert. Deux
+> solutions : fermer le fichier, ou changer de préfixe de sortie :
+>
+> ```powershell
+> $env:CSV_PREFIX='run2'; docker compose run --rm locust   # ecrit run2_stats.csv
+> ```
+
+Les entrypoints transmettent désormais les arguments : `docker compose run --rm locust locust --help`
+execute exactement la commande donnée, sans passer par les valeurs par défaut.
+
 | Image | Base | Taille |
 |---|---|---|
 | `poc-perf-mock` | `python:3.12-slim` | 177 Mo |

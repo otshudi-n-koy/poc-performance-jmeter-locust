@@ -62,3 +62,5 @@ services:
       USERS: "${USERS:-50}"
       SPAWN_RATE: "${SPAWN_RATE:-10}"
       RUN_TIME: "${RUN_TIME:-1m}"
+      # Changez ce prefixe pour ne pas ecraser un CSV encore ouvert dans Excel/VS Code
+      CSV_PREFIX: "${CSV_PREFIX:-resultats}"

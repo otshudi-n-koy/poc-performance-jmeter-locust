@@ -71,6 +71,17 @@ Pour montrer l'effet d'un backend lent en direct : relancer le mock avec `--late
 le même test, et comparer `Average Response Time` / `95%` dans les deux CSV. C'est la démonstration
 la plus parlante — même charge, même scénario, seule la cible change.
 
+### Dépannage : `PermissionError` sur les CSV
+
+Deux causes possibles, dans cet ordre :
+
+1. **Le fichier est ouvert sous Windows** (Excel, VS Code, aperçu). Windows le verrouille, le conteneur
+   ne peut plus l'écraser, et Docker renvoie `PermissionError: '/resultats/resultats_stats.csv'`.
+   Fermez le fichier, ou changez de préfixe : `CSV_PREFIX=run2` (PowerShell : `$env:CSV_PREFIX='run2'`).
+2. **Vous passez une commande personnalisée** : elle est maintenant exécutée telle quelle, donc les
+   chemins que vous indiquez (`--csv=/app/resultats/...`) doivent exister. Le volume du compose monte
+   déjà `./resultats` sur `/resultats` — inutile d'ajouter un second `-v`.
+
 ## Adapter le scénario à une API publique réelle
 
 `https://dummyjson.com` (**vérifié le 2026-10-21**) : `POST /auth/login` → `200` avec la clé
