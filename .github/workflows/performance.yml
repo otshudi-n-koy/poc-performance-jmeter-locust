@@ -103,11 +103,14 @@ jobs:
         retention-days: 30
 
     # Release automatique : uniquement sur un tag v* (ex. v1.0.0).
-    - name: Zipper le rapport JMeter
+    # Les rapports sont joints en ZIP : GitHub sert les .html en application/octet-stream,
+    # un HTML nu serait donc telecharge sans jamais s'afficher dans le navigateur.
+    - name: Zipper les rapports
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         zip -r rapport-jmeter.zip rapport_html
-        ls -lh rapport-jmeter.zip rapport-locust.html
+        zip -j rapport-locust.zip rapport-locust.html
+        ls -lh rapport-jmeter.zip rapport-locust.zip
 
     - name: Publier la release
       if: startsWith(github.ref, 'refs/tags/')
@@ -115,7 +118,7 @@ jobs:
       with:
         files: |
           rapport-jmeter.zip
-          rapport-locust.html
+          rapport-locust.zip
         generate_release_notes: true
         body: |
           ## Rapports de l'exécution
@@ -126,7 +129,7 @@ jobs:
           | Fichier joint | Contenu |
           |---|---|
           | `rapport-jmeter.zip` | Rapport HTML JMeter (plan `jmeter/plan_de_test.jmx`) |
-          | `rapport-locust.html` | Rapport HTML Locust (scenario `locust/locustfile.py`) |
+          | `rapport-locust.zip` | Rapport HTML Locust, fichier autonome (scenario `locust/locustfile.py`) |
 
           Parametres : ${{ env.USERS }} utilisateurs, p95 contrôlé sous ${{ env.MAX_P95_MS }} ms,
           latence simulée de ${{ env.MOCK_LATENCY_MS }} ms sur la route protégée.

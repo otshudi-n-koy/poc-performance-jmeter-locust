@@ -186,8 +186,16 @@ git push origin v1.0.0-poc
 Le tag doit être poussé après la branche : la release référence un commit qui doit exister sur le
 dépôt distant.
 
-Le workflow joint `rapport-jmeter.zip` (rapport HTML complet) et `rapport-locust.html` (fichier
-autonome), générés par cette exécution et dont les seuils ont été vérifiés.
+Le workflow joint deux archives, générées par cette exécution et dont les seuils ont été vérifiés :
+
+| Pièce jointe | Contenu |
+|---|---|
+| `rapport-jmeter.zip` | Rapport HTML complet (127 fichiers, `index.html` inclus) |
+| `rapport-locust.zip` | Rapport Locust autonome, un seul fichier HTML |
+
+Les deux sont des archives, y compris le rapport Locust pourtant autonome : GitHub sert les `.html`
+en `application/octet-stream`, un HTML nu serait donc téléchargé sans jamais s'afficher. En archive,
+le comportement est explicite et l'utilisateur sait qu'il doit extraire le fichier.
 
 ## Résultats de référence
 
